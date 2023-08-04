@@ -20,45 +20,81 @@ function handleSearchFormSubmit(event) {
 
   pixabayApiInstance.q = searchQuery;
 
-  pixabayApiInstance.fetchPhotos().then(data => {
-    //console.log('data:', data.hits);
+  pixabayApiInstance
+    .fetchPhotos()
+    .then(data => {
+      //console.log('data:', data);
+      galleryEl.innerHTML = '';
+      const dataArray = data.hits;
+      dataArray.map(element => {
+        createGalleryCard(element);
+        //console.log('element:', element);
+      });
 
-    const dataArray = data.hits;
-    dataArray.map(element => {
-      createGalleryCard(element);
-      //console.log('element:', element);
-    });
+      //console.log(typeof pixabayApiInstance.baseSearchParams.per_page);
+      //console.log(data.totalHits);
+      if (data.totalHits <= 40) {
+        loadMoreBtn.classList.add('is-hidden');
+      } else {
+        loadMoreBtn.classList.remove('is-hidden');
+      }
 
-    //console.log(data.totalHits);
-
-    if (data.totalHits === 0) {
-      Notify.failure(
-        `Sorry, there are no images matching your search query. Please try again.`
-      );
-    } else {
-      Notify.success(`Hooray! We found ${data.totalHits} images.`);
-    }
-  });
+      if (data.totalHits === 0) {
+        Notify.failure(
+          `Sorry, there are no images matching your search query. Please try again.`
+        );
+      } else {
+        Notify.success(`Hooray! We found ${data.totalHits} images.`);
+      }
+    })
+    .catch(console.warn);
 }
 searchForm.addEventListener('submit', handleSearchFormSubmit);
 
+function handleLoanMoreBtnClick() {
+  pixabayApiInstance.page += 1;
+
+  pixabayApiInstance
+    .fetchPhotos()
+    .then(data => {
+      console.log('data:', data);
+
+      const dataArray = data.hits;
+      dataArray.map(element => {
+        createGalleryCard(element);
+        //console.log('element:', element);
+      });
+      const totalPages = Math.ceil(
+        data.totalHits / pixabayApiInstance.baseSearchParams.per_page
+      );
+
+      console.log(totalPages);
+      if (pixabayApiInstance.page === totalPages) {
+        loadMoreBtn.classList.add('is-hidden');
+      }
+    })
+    .catch(console.warn);
+}
+
+loadMoreBtn.addEventListener('click', handleLoanMoreBtnClick);
+
 function createGalleryCard(element) {
   const newCard = `<div class="photo-card">
-  <img src="${element.previewURL}" alt="${element.tags}" loading="lazy" />
+  <img src="${element.previewURL}" alt="${element.tags}" width="250" loading="lazy" />
   <div class="info">
     <p class="info-item">
-      <b>Likes</b>${element.likes}
+      <b>Likes:&nbsp;</b>${element.likes}
     </p>
     <p class="info-item">
-      <b>Views</b>${element.views}
+      <b>Views:&nbsp;</b>${element.views}
     </p>
     <p class="info-item">
-      <b>Comments</b>${element.comments}
+      <b>Comments:&nbsp;</b>${element.comments}
     </p>
     <p class="info-item">
-      <b>Downloads</b>${element.downloads}
+      <b>Downloads:&nbsp;</b>${element.downloads}
     </p>
   </div>
 </div>`;
-  galleryEl.insertAdjacentHTML('afterbegin', newCard);
+  galleryEl.insertAdjacentHTML('beforeend', newCard);
 }

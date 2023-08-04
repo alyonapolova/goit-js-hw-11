@@ -1,3 +1,27 @@
+.search-form {
+  display: flex;
+  width: 600px;
+  margin: 0 auto;
+  margin-bottom: 40px;
+}
+
 .load-more.is-hidden {
   display: none;
+}
+
+.gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+  margin: 30px 30px;
+}
+
+/* .photo-card {
+
+  border: 1px solid black;
+} */
+.info {
+  flex-basis: calc((100% - 120px) / 4);
+  margin-left: 30px;
+  margin-top: 30px;
 }
