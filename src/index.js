@@ -1,5 +1,7 @@
 import { PixabayApi } from './pixabayApi';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
+import SimpleLightbox from 'simplelightbox';
+import 'simplelightbox/dist/simple-lightbox.min.css';
 
 const searchForm = document.querySelector('.search-form');
 const galleryEl = document.querySelector('.gallery');
@@ -22,14 +24,25 @@ function handleSearchFormSubmit(event) {
 
   pixabayApiInstance
     .fetchPhotos()
-    .then(data => {
-      //console.log('data:', data);
+    .then(({ data }) => {
+      console.log('data:', data);
       galleryEl.innerHTML = '';
       const dataArray = data.hits;
       dataArray.map(element => {
         createGalleryCard(element);
         //console.log('element:', element);
       });
+
+      const { height: cardHeight } = document
+        .querySelector('.gallery')
+        .firstElementChild.getBoundingClientRect();
+
+      window.scrollBy({
+        top: cardHeight * 2,
+        behavior: 'smooth',
+      });
+
+      createLightbox();
 
       //console.log(typeof pixabayApiInstance.baseSearchParams.per_page);
       //console.log(data.totalHits);
@@ -47,7 +60,9 @@ function handleSearchFormSubmit(event) {
         Notify.success(`Hooray! We found ${data.totalHits} images.`);
       }
     })
-    .catch(console.warn);
+    .catch(err => {
+      console.log(err);
+    });
 }
 searchForm.addEventListener('submit', handleSearchFormSubmit);
 
@@ -56,7 +71,7 @@ function handleLoanMoreBtnClick() {
 
   pixabayApiInstance
     .fetchPhotos()
-    .then(data => {
+    .then(({ data }) => {
       console.log('data:', data);
 
       const dataArray = data.hits;
@@ -64,23 +79,40 @@ function handleLoanMoreBtnClick() {
         createGalleryCard(element);
         //console.log('element:', element);
       });
+
+      const { height: cardHeight } = document
+        .querySelector('.gallery')
+        .firstElementChild.getBoundingClientRect();
+
+      window.scrollBy({
+        top: cardHeight * 2,
+        behavior: 'smooth',
+      });
+
+      const lightBoxInstance = createLightbox();
+      lightBoxInstance.refresh();
+
       const totalPages = Math.ceil(
-        data.totalHits / pixabayApiInstance.baseSearchParams.per_page
+        data.totalHits / pixabayApiInstance.per_page
       );
+
+      //console.log(typeof pixabayApiInstance.per_page);
 
       console.log(totalPages);
       if (pixabayApiInstance.page === totalPages) {
         loadMoreBtn.classList.add('is-hidden');
       }
     })
-    .catch(console.warn);
+    .catch(err => {
+      console.log(err);
+    });
 }
 
 loadMoreBtn.addEventListener('click', handleLoanMoreBtnClick);
 
 function createGalleryCard(element) {
-  const newCard = `<div class="photo-card">
-  <img src="${element.previewURL}" alt="${element.tags}" width="250" loading="lazy" />
+  const newCard = `<a class="photo-card-link" href="${element.largeImageURL}"><div class="photo-card">
+  <img src="${element.webformatURL}" alt="${element.tags}" width="250" loading="lazy" />
   <div class="info">
     <p class="info-item">
       <b>Likes:&nbsp;</b>${element.likes}
@@ -95,6 +127,17 @@ function createGalleryCard(element) {
       <b>Downloads:&nbsp;</b>${element.downloads}
     </p>
   </div>
-</div>`;
+</div></a>`;
   galleryEl.insertAdjacentHTML('beforeend', newCard);
+}
+
+function createLightbox() {
+  const lightbox = new SimpleLightbox('.gallery a', {
+    captionType: 'attr',
+    captionsData: 'alt',
+    captionPosition: 'bottom',
+    captionDelay: 250,
+  });
+
+  return lightbox;
 }
