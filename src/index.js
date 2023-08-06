@@ -5,12 +5,14 @@ import 'simplelightbox/dist/simple-lightbox.min.css';
 
 const searchForm = document.querySelector('.search-form');
 const galleryEl = document.querySelector('.gallery');
-const loadMoreBtn = document.querySelector('.load-more');
+//const loadMoreBtn = document.querySelector('.load-more');
+const loaderEl = document.querySelector('.lds-ellipsis');
+const endGallery = document.querySelector('.end-gallery');
 
 const pixabayApiInstance = new PixabayApi();
 //console.log(pixabayApiInstance);
 
-function handleSearchFormSubmit(event) {
+async function handleSearchFormSubmit(event) {
   event.preventDefault();
 
   const searchQuery = event.target.firstElementChild.value.trim();
@@ -22,71 +24,65 @@ function handleSearchFormSubmit(event) {
 
   pixabayApiInstance.q = searchQuery;
 
-  pixabayApiInstance
-    .fetchPhotos()
-    .then(({ data }) => {
-      console.log('data:', data);
-      galleryEl.innerHTML = '';
-      const dataArray = data.hits;
-      dataArray.map(element => {
-        createGalleryCard(element);
-        //console.log('element:', element);
-      });
+  try {
+    const data = await pixabayApiInstance.fetchPhotos();
 
-      const { height: cardHeight } = document
-        .querySelector('.gallery')
-        .firstElementChild.getBoundingClientRect();
+    console.log('data:', data);
+
+    galleryEl.innerHTML = '';
+    const dataArray = data.hits;
+    dataArray.map(element => {
+      createGalleryCard(element);
+
+      //console.log('element:', element);
+    });
+
+    createLightbox();
+
+    if (data.totalHits <= 40) {
+      //loadMoreBtn.classList.add('is-hidden');
+      loaderEl.classList.add('is-hidden');
+    } else {
+      //loadMoreBtn.classList.remove('is-hidden');
+      loaderEl.classList.remove('is-hidden');
+    }
+
+    if (data.totalHits === 0) {
+      Notify.failure(
+        `Sorry, there are no images matching your search query. Please try again.`
+      );
+    } else {
+      Notify.success(`Hooray! We found ${data.totalHits} images.`);
+
+      const { height: cardHeight } =
+        galleryEl.firstElementChild.getBoundingClientRect();
 
       window.scrollBy({
         top: cardHeight * 2,
         behavior: 'smooth',
       });
-
-      createLightbox();
-
-      //console.log(typeof pixabayApiInstance.baseSearchParams.per_page);
-      //console.log(data.totalHits);
-      if (data.totalHits <= 40) {
-        loadMoreBtn.classList.add('is-hidden');
-      } else {
-        loadMoreBtn.classList.remove('is-hidden');
-      }
-
-      if (data.totalHits === 0) {
-        Notify.failure(
-          `Sorry, there are no images matching your search query. Please try again.`
-        );
-      } else {
-        Notify.success(`Hooray! We found ${data.totalHits} images.`);
-      }
-    })
-    .catch(err => {
-      console.log(err);
-    });
+    }
+  } catch (err) {
+    console.log(err);
+  }
 }
+
 searchForm.addEventListener('submit', handleSearchFormSubmit);
 
-function handleLoanMoreBtnClick() {
-  pixabayApiInstance.page += 1;
+async function handleInfiniteScroll() {
+  const documentEl = document.documentElement.getBoundingClientRect();
+  console.log('bottom', documentEl.bottom);
+  if (documentEl.bottom < document.documentElement.clientHeight + 150) {
+    console.log('Done');
+    pixabayApiInstance.page += 1;
 
-  pixabayApiInstance
-    .fetchPhotos()
-    .then(({ data }) => {
-      console.log('data:', data);
-
+    try {
+      const data = await pixabayApiInstance.fetchPhotos();
+      //console.log('dataNew', data);
       const dataArray = data.hits;
       dataArray.map(element => {
         createGalleryCard(element);
         //console.log('element:', element);
-      });
-
-      const { height: cardHeight } = document
-        .querySelector('.gallery')
-        .firstElementChild.getBoundingClientRect();
-
-      window.scrollBy({
-        top: cardHeight * 2,
-        behavior: 'smooth',
       });
 
       const lightBoxInstance = createLightbox();
@@ -96,19 +92,65 @@ function handleLoanMoreBtnClick() {
         data.totalHits / pixabayApiInstance.per_page
       );
 
-      //console.log(typeof pixabayApiInstance.per_page);
+      // console.log(typeof pixabayApiInstance.per_page);
 
-      console.log(totalPages);
+      // console.log(totalPages);
+
       if (pixabayApiInstance.page === totalPages) {
-        loadMoreBtn.classList.add('is-hidden');
+        //loadMoreBtn.classList.add('is-hidden');
+        loaderEl.classList.add('is-hidden');
+        galleryEl.insertAdjacentHTML(
+          'beforeend',
+          ` <h2 class="end-gallery">All photos have been loaded.</h2>`
+        );
       }
-    })
-    .catch(err => {
+    } catch (err) {
       console.log(err);
-    });
+    }
+  }
 }
 
-loadMoreBtn.addEventListener('click', handleLoanMoreBtnClick);
+window.addEventListener('scroll', handleInfiniteScroll);
+
+// async function handleLoanMoreBtnClick() {
+//   pixabayApiInstance.page += 1;
+
+//   try {
+//     const data = await pixabayApiInstance.fetchPhotos();
+//     //console.log('dataNew', data);
+//     const dataArray = data.hits;
+//     dataArray.map(element => {
+//       createGalleryCard(element);
+//       //console.log('element:', element);
+//     });
+
+//     const { height: cardHeight } = document
+//       .querySelector('.gallery')
+//       .firstElementChild.getBoundingClientRect();
+
+//     window.scrollBy({
+//       top: cardHeight * 2,
+//       behavior: 'smooth',
+//     });
+
+//     const lightBoxInstance = createLightbox();
+//     lightBoxInstance.refresh();
+
+//     const totalPages = Math.ceil(data.totalHits / pixabayApiInstance.per_page);
+
+//     // console.log(typeof pixabayApiInstance.per_page);
+
+//     // console.log(totalPages);
+
+//     if (pixabayApiInstance.page === totalPages) {
+//       loadMoreBtn.classList.add('is-hidden');
+//     }
+//   } catch (err) {
+//     console.log(err);
+//   }
+// }
+
+// loadMoreBtn.addEventListener('click', handleLoanMoreBtnClick);
 
 function createGalleryCard(element) {
   const newCard = `<a class="photo-card-link" href="${element.largeImageURL}"><div class="photo-card">
