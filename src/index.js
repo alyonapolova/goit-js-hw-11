@@ -77,7 +77,7 @@ async function handleInfiniteScroll() {
 
   scrollTimeoutID = setTimeout(async () => {
     const documentEl = document.documentElement.getBoundingClientRect();
-    console.log('bottom', documentEl.bottom);
+    //console.log('bottom', documentEl.bottom);
     if (documentEl.bottom < document.documentElement.clientHeight + 150) {
       //console.log('Done');
 
