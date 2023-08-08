@@ -22,6 +22,8 @@ async function handleSearchFormSubmit(event) {
     return;
   }
 
+  pixabayApiInstance.page = 1;
+
   pixabayApiInstance.q = searchQuery;
 
   try {
@@ -69,45 +71,52 @@ async function handleSearchFormSubmit(event) {
 
 searchForm.addEventListener('submit', handleSearchFormSubmit);
 
+let scrollTimeoutID;
 async function handleInfiniteScroll() {
-  const documentEl = document.documentElement.getBoundingClientRect();
-  console.log('bottom', documentEl.bottom);
-  if (documentEl.bottom < document.documentElement.clientHeight + 150) {
-    console.log('Done');
-    pixabayApiInstance.page += 1;
+  clearTimeout(scrollTimeoutID);
 
-    try {
-      const data = await pixabayApiInstance.fetchPhotos();
-      //console.log('dataNew', data);
-      const dataArray = data.hits;
-      dataArray.map(element => {
-        createGalleryCard(element);
-        //console.log('element:', element);
-      });
+  scrollTimeoutID = setTimeout(async () => {
+    const documentEl = document.documentElement.getBoundingClientRect();
+    console.log('bottom', documentEl.bottom);
+    if (documentEl.bottom < document.documentElement.clientHeight + 150) {
+      //console.log('Done');
 
-      const lightBoxInstance = createLightbox();
-      lightBoxInstance.refresh();
+      pixabayApiInstance.page += 1;
 
-      const totalPages = Math.ceil(
-        data.totalHits / pixabayApiInstance.per_page
-      );
+      try {
+        const data = await pixabayApiInstance.fetchPhotos();
+        //console.log('dataNew', data);
+        const dataArray = data.hits;
+        dataArray.map(element => {
+          createGalleryCard(element);
+          //console.log('element:', element);
+        });
 
-      // console.log(typeof pixabayApiInstance.per_page);
+        const lightBoxInstance = createLightbox();
+        lightBoxInstance.refresh();
 
-      // console.log(totalPages);
-
-      if (pixabayApiInstance.page === totalPages) {
-        //loadMoreBtn.classList.add('is-hidden');
-        loaderEl.classList.add('is-hidden');
-        galleryEl.insertAdjacentHTML(
-          'beforeend',
-          ` <h2 class="end-gallery">All photos have been loaded.</h2>`
+        const totalPages = Math.ceil(
+          data.totalHits / pixabayApiInstance.per_page
         );
+
+        // console.log(typeof pixabayApiInstance.per_page);
+
+        // console.log(totalPages);
+
+        if (pixabayApiInstance.page === totalPages) {
+          //loadMoreBtn.classList.add('is-hidden');
+          loaderEl.classList.add('is-hidden');
+
+          galleryEl.insertAdjacentHTML(
+            'beforeend',
+            ` <div class="end-words"><h2 class="end-gallery">All photos have been loaded.</h2></div>`
+          );
+        }
+      } catch (err) {
+        console.log(err);
       }
-    } catch (err) {
-      console.log(err);
     }
-  }
+  }, 100);
 }
 
 window.addEventListener('scroll', handleInfiniteScroll);

@@ -3,6 +3,11 @@
   text-align: center;
   color: #007bff;
 }
+.end-words {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .gallery {
   display: flex;
